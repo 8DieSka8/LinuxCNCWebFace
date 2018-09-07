@@ -1,3 +1,6 @@
+===WARNING
+This method (lighttpd+mod_websocket) is outdated and never be used in fufture. Don't use it.
+
 ===Web Interface for the LinuxCNC
 Project uses PHP/HTML5/CSS3/JavaScript and WebSockets.
 
