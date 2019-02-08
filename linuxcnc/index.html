@@ -1,7 +1,7 @@
 <html>
     <head>
         <meta charset="utf-8">
-        <title>LinuxCNC + websocketd + python</title>
+        <title>LinuxCNC + websocketd + halcmd</title>
         <style type="text/css">
             input { font-size: 120% }
         </style>
@@ -10,32 +10,7 @@
         <!-- interface -->
         <div style="text-align:center">
             <div style="display:inline-block; width:70%; text-align:center">
-                <h2>LinuxCNC + websocketd + python</h2><br />
-                <div style="display:inline-block; width:100%; text-align:center">
-                    <input id="estopoff" type="button" value="E-Stop OFF" />
-                    <input id="machineon" type="button" value="Machine ON" />
-                    <input id="abort" type="button" value="Abort" />
-                    <br />
-                    <br />
-                    X:  <input id="valx" type="text" value="0.0" disabled />
-                        <input id="homex" type="button" value="Home" />
-                        <input id="negx" type="button" value="-" />
-                        <input id="posx" type="button" value="+" />
-                        <br />
-                    Y:  <input id="valy" type="text" value="0.0" disabled />
-                        <input id="homey" type="button" value="Home" />
-                        <input id="negy" type="button" value="-" />
-                        <input id="posy" type="button" value="+" />
-                        <br />
-                    Z:  <input id="valz" type="text" value="0.0" disabled />
-                        <input id="homez" type="button" value="Home" />
-                        <input id="negz" type="button" value="-" />
-                        <input id="posz" type="button" value="+" />
-                        <br />
-                </div>
-                <br />
-                <br />
-                <br />
+                <h2>LinuxCNC + websocketd + halcmd</h2><br />
                 <div style="display:inline-block; width:100%; text-align:center">
                     Command: 
                     <input id="cmd" type="text" style="width:50%" /> 
@@ -44,29 +19,23 @@
                     <div style="color:rgba(0,0,0,0.5); font-size:80%; text-align:left">
                         examples:<br />
                         <ul>
-                            <li>linuxcnc.command().state(linuxcnc.STATE_ESTOP_RESET)
-                            <li>linuxcnc.command().state(linuxcnc.STATE_ON)
-                            <li>linuxcnc.command().mode(linuxcnc.MODE_MANUAL)
-                            <li>linuxcnc.command().jog(linuxcnc.JOG_INCREMENT, 0, 12, 34.5678)
-                            <li>linuxcnc.stat().axes
-                            <li>linuxcnc.stat().axis[0]
-                            <li>See <a href="http://linuxcnc.org/docs/html/config/python-interface.html" target="_blank">linuxcnc.org/docs/html/config/python-interface.html</a> 
-                                for the others
+                            <li>list comp
+                            <li>show pin stepgen.0 
+                            <li>setp stepgen.0.dirhold 50000
+                            <li>getp motion.spindle-at-speed
+                            <li>See other commands <a href="http://linuxcnc.org/docs/html/man/man1/halcmd.1.html" target="_blank">here</a>
                         </ul>
                     </div>
                 </div>
                 <br />
                 <br />
-                <div id="log" style="height:120px; font-size:80%; text-align:left; outline:1px solid; overflow:auto"></div>
+                <div id="log" style="height:300px; font-size:80%; text-align:left; outline:1px solid; overflow:auto"></div>
             </div>
         </div>
 
         <!-- logic -->
         <script type="text/javascript">
             // get main elements
-            var valx = document.querySelector("#valx");
-            var valy = document.querySelector("#valy");
-            var valz = document.querySelector("#valz");
             var cmd = document.querySelector("#cmd");
             var ok  = document.querySelector("#ok");
             var log = document.querySelector("#log");
@@ -84,45 +53,34 @@
 
             // sending MDI commands
             function cmd_ms ( ms ) {
-                if ( !lcnc_ws.open ) return;
+                if ( !halcmd_ws.open ) return;
                 log_ms("<u>YOU</u>: "+ms);
-                lcnc_ws.sock.send(ms);
+                halcmd_ws.sock.send(ms);
             }
 
             // websockets
-            var lcnc_ws = { open:0, path:"ws://" + parent.location.hostname + "/lcnc.py" };
+            var halcmd_ws = { open:0, path:"ws://" + parent.location.hostname + "/" };
 
-            lcnc_ws.onopen = function(e) { 
-                lcnc_ws.open = 1;
-                log_ms("<u>index.html</u>: `"+lcnc_ws.path+"` websocket is open"); 
+            halcmd_ws.onopen = function(e) { 
+                halcmd_ws.open = 1;
+                log_ms("<u>halcmd.html</u>: `"+halcmd_ws.path+"` websocket is open"); 
             };
-            lcnc_ws.onclose = function(e) {
-                lcnc_ws.open = 0; 
-                log_ms("<u>index.html</u>: `"+lcnc_ws.path+"` websocket is closed (code:"+e.code+")");
+            halcmd_ws.onclose = function(e) {
+                halcmd_ws.open = 0; 
+                log_ms("<u>halcmd.html</u>: `"+halcmd_ws.path+"` websocket is closed (code:"+e.code+")");
             };
-            lcnc_ws.onmessage = function(e) {
-                if ( e.data.match(/linuxcnc\.stat\(\)\.joint_position\s*=/g) ) {
-                    var params = e.data.replace(/.+=/g,"").match(/[\-\.0-9e]+/gi);
-                    if ( params ) {
-                        if ( params[0] ) valx.value = parseFloat(params[0]).toFixed(4);
-                        if ( params[1] ) valy.value = parseFloat(params[1]).toFixed(4);
-                        if ( params[2] ) valz.value = parseFloat(params[2]).toFixed(4);
-                    }
-                }
-                else if ( e.data.match(/linuxcnc\.stat\(\)\.poll\(/g) ) {
-                    // nothing
-                }
-                else log_ms("<u>lcnc.py</u>: "+e.data);
+            halcmd_ws.onmessage = function(e) {
+                log_ms("<u>halcmd</u>: "+e.data);
             };
-            lcnc_ws.connect = function() {
-                lcnc_ws.sock = new WebSocket(lcnc_ws.path);
-                lcnc_ws.sock.onopen = lcnc_ws.onopen;
-                lcnc_ws.sock.onclose = lcnc_ws.onclose;
-                lcnc_ws.sock.onmessage = lcnc_ws.onmessage;
+            halcmd_ws.connect = function() {
+                halcmd_ws.sock = new WebSocket(halcmd_ws.path);
+                halcmd_ws.sock.onopen = halcmd_ws.onopen;
+                halcmd_ws.sock.onclose = halcmd_ws.onclose;
+                halcmd_ws.sock.onmessage = halcmd_ws.onmessage;
             }
             
-            lcnc_ws.connect();
-            setInterval( function() { if (!lcnc_ws.open) lcnc_ws.connect(); }, 5000 );
+            halcmd_ws.connect();
+            setInterval( function() { if (!halcmd_ws.open) halcmd_ws.connect(); }, 5000 );
             
             // command input field is active by default
             cmd.focus();
@@ -130,39 +88,6 @@
             // interface controls handling
             ok.addEventListener( "click", function(e) { cmd_ms(cmd.value); } );
             cmd.addEventListener( "keyup", function(e) { if ( event.keyCode == 13 ) cmd_ms(cmd.value); } );
-
-            document.querySelector("#estopoff").addEventListener( "click",  function() { cmd_ms("linuxcnc.command().state(linuxcnc.STATE_ESTOP_RESET)"); } );
-            document.querySelector("#machineon").addEventListener( "click", function() { cmd_ms("linuxcnc.command().state(linuxcnc.STATE_ON)"); } );
-            document.querySelector("#abort").addEventListener( "click",     function() { cmd_ms("linuxcnc.command().abort()"); } );
-
-            document.querySelector("#homex").addEventListener( "click",     function() { cmd_ms("linuxcnc.command().home(0)"); } );
-            document.querySelector("#homey").addEventListener( "click",     function() { cmd_ms("linuxcnc.command().home(1)"); } );
-            document.querySelector("#homez").addEventListener( "click",     function() { cmd_ms("linuxcnc.command().home(2)"); } );
-
-            document.querySelector("#negx").addEventListener( "mousedown",  function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_CONTINUOUS, 0, -10)"); return true; } );
-            document.querySelector("#negx").addEventListener( "mouseup",    function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_STOP, 0)"); } );
-            document.querySelector("#negy").addEventListener( "mousedown",  function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_CONTINUOUS, 1, -10)"); return true; } );
-            document.querySelector("#negy").addEventListener( "mouseup",    function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_STOP, 1)"); } );
-            document.querySelector("#negz").addEventListener( "mousedown",  function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_CONTINUOUS, 2, -10)"); return true; } );
-            document.querySelector("#negz").addEventListener( "mouseup",    function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_STOP, 2)"); } );
-
-            document.querySelector("#posx").addEventListener( "mousedown",  function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_CONTINUOUS, 0, 10)"); return true; } );
-            document.querySelector("#posx").addEventListener( "mouseup",    function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_STOP, 0)"); } );
-            document.querySelector("#posy").addEventListener( "mousedown",  function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_CONTINUOUS, 1, 10)"); return true; } );
-            document.querySelector("#posy").addEventListener( "mouseup",    function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_STOP, 1)"); } );
-            document.querySelector("#posz").addEventListener( "mousedown",  function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_CONTINUOUS, 2, 10)"); return true; } );
-            document.querySelector("#posz").addEventListener( "mouseup",    function() { cmd_ms("linuxcnc.command().jog(linuxcnc.JOG_STOP, 2)"); } );
-            
-            // update coordinates every 0.2 sec
-            setInterval( 
-                function() { 
-                    if (lcnc_ws.open) {
-                        lcnc_ws.sock.send("linuxcnc.stat().poll()"); 
-                        lcnc_ws.sock.send("linuxcnc.stat().joint_position"); 
-                    }
-                }, 
-                200 
-            );
         </script>
     </body>
 </html>
