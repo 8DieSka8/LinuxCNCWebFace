@@ -1,6 +1,12 @@
-# LinuxCNC + websocketd + python
-It's just a test branch to ensure that **websocketd** + **python** is exactly what we need for the web face networking.
+# LinuxCNC + websocketd + halcmd
+Just an example of **websocketd** + **halcmd** usage.
 
-**Installation**
-* In english: https://github.com/MX-Master/LinuxCNCWebFace/blob/websocketd_py_test/INSTALL_EN
-* По-русски: https://github.com/MX-Master/LinuxCNCWebFace/blob/websocketd_py_test/INSTALL_RU
+# Installation
+* Copy files from **linuxcnc** to your **/home/{USER}/linuxcnc** folder.
+* Make **websocketd** executable
+
+# Usage
+* Run **LinuxCNC**
+* Run **websocketd** like
+`/home/{USER}/linuxcnc/websocketd --staticdir=/home/{USER}/linuxcnc/ halcmd -f`
+* Run web browser and open the page http://localhost/
