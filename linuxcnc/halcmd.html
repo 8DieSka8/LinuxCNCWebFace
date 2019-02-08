@@ -1,0 +1,93 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>LinuxCNC + websocketd + halcmd</title>
+        <style type="text/css">
+            input { font-size: 120% }
+        </style>
+    </head>
+    <body>
+        <!-- interface -->
+        <div style="text-align:center">
+            <div style="display:inline-block; width:70%; text-align:center">
+                <h2>LinuxCNC + websocketd + halcmd</h2><br />
+                <div style="display:inline-block; width:100%; text-align:center">
+                    Command: 
+                    <input id="cmd" type="text" style="width:50%" /> 
+                    <input id="ok" type="button" value="OK" /><br />
+                    <br />
+                    <div style="color:rgba(0,0,0,0.5); font-size:80%; text-align:left">
+                        examples:<br />
+                        <ul>
+                            <li>list comp
+                            <li>show pin stepgen.0 
+                            <li>setp stepgen.0.dirhold 50000
+                            <li>getp motion.spindle-at-speed
+                            <li>See other commands <a href="http://linuxcnc.org/docs/html/man/man1/halcmd.1.html" target="_blank">here</a>
+                        </ul>
+                    </div>
+                </div>
+                <br />
+                <br />
+                <div id="log" style="height:300px; font-size:80%; text-align:left; outline:1px solid; overflow:auto"></div>
+            </div>
+        </div>
+
+        <!-- logic -->
+        <script type="text/javascript">
+            // get main elements
+            var cmd = document.querySelector("#cmd");
+            var ok  = document.querySelector("#ok");
+            var log = document.querySelector("#log");
+
+            // log messages output
+            function log_ms ( ms ) {
+                var t = new Date();
+                var out = "<strong>" + t.toLocaleTimeString() + "</strong>: ";
+                
+                out += ms + "<br />";
+
+                log.innerHTML = out + log.innerHTML;
+                log.scrollTop = 0;
+            }
+
+            // sending MDI commands
+            function cmd_ms ( ms ) {
+                if ( !halcmd_ws.open ) return;
+                log_ms("<u>YOU</u>: "+ms);
+                halcmd_ws.sock.send(ms);
+            }
+
+            // websockets
+            var halcmd_ws = { open:0, path:"ws://" + parent.location.hostname + "/" };
+
+            halcmd_ws.onopen = function(e) { 
+                halcmd_ws.open = 1;
+                log_ms("<u>halcmd.html</u>: `"+halcmd_ws.path+"` websocket is open"); 
+            };
+            halcmd_ws.onclose = function(e) {
+                halcmd_ws.open = 0; 
+                log_ms("<u>halcmd.html</u>: `"+halcmd_ws.path+"` websocket is closed (code:"+e.code+")");
+            };
+            halcmd_ws.onmessage = function(e) {
+                log_ms("<u>halcmd</u>: "+e.data);
+            };
+            halcmd_ws.connect = function() {
+                halcmd_ws.sock = new WebSocket(halcmd_ws.path);
+                halcmd_ws.sock.onopen = halcmd_ws.onopen;
+                halcmd_ws.sock.onclose = halcmd_ws.onclose;
+                halcmd_ws.sock.onmessage = halcmd_ws.onmessage;
+            }
+            
+            halcmd_ws.connect();
+            setInterval( function() { if (!halcmd_ws.open) halcmd_ws.connect(); }, 5000 );
+            
+            // command input field is active by default
+            cmd.focus();
+
+            // interface controls handling
+            ok.addEventListener( "click", function(e) { cmd_ms(cmd.value); } );
+            cmd.addEventListener( "keyup", function(e) { if ( event.keyCode == 13 ) cmd_ms(cmd.value); } );
+        </script>
+    </body>
+</html>
